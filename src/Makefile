@@ -48,12 +48,8 @@ $(PARSER).cpp: %.cpp: %.y
 
 $(EXEC): $(OBJS)
 	$(CC) -o $@ $^ $(LIBS) $(INCLUDE)
-	make light_clean
 
 clean:
 	$(RM) $(DEPS) $(SCANNER:=.cpp) $(PARSER:=.cpp) $(PARSER:=.h) $(PARSER:=.output) $(OBJS)
-
-light_clean:
-	$(RM) $(SCANNER:=.cpp) $(PARSER:=.cpp) $(PARSER:=.h) $(PARSER:=.output)
 
 -include $(DEPS)
