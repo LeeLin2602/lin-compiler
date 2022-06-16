@@ -48,8 +48,9 @@ $(PARSER).cpp: %.cpp: %.y
 
 $(EXEC): $(OBJS)
 	$(CC) -o $@ $^ $(LIBS) $(INCLUDE)
+	make clean
 
 clean:
-	$(RM) $(DEPS) $(SCANNER:=.cpp) $(PARSER:=.cpp) $(PARSER:=.h) $(PARSER:=.output) $(OBJS) $(EXEC)
+	$(RM) $(DEPS) $(SCANNER:=.cpp) $(PARSER:=.cpp) $(PARSER:=.h) $(PARSER:=.output) $(OBJS)
 
 -include $(DEPS)
