@@ -57,6 +57,7 @@ class SymbolEntry {
     Attribute m_attribute;
 
   public:
+    int stkLoc = 0;
     ~SymbolEntry() = default;
 
     SymbolEntry(const std::string &p_name, const KindEnum kind,

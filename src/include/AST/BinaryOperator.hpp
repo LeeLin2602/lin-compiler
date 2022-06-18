@@ -29,6 +29,8 @@ class BinaryOperatorNode final : public ExpressionNode {
 
     const ExpressionNode &getLeftOperand() const { return *m_left_operand.get(); }
     const ExpressionNode &getRightOperand() const { return *m_right_operand.get(); }
+    ExpressionNode* getL() { return m_left_operand.get(); }
+    ExpressionNode* getR() { return m_right_operand.get(); }
 
     void accept(AstNodeVisitor &p_visitor) override { p_visitor.visit(*this); }
     void visitChildNodes(AstNodeVisitor &p_visitor) override;

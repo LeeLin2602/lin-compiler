@@ -5,6 +5,14 @@
 #include "visitor/AstNodeVisitor.hpp"
 
 #include <memory>
+#include <cstdarg>
+
+static void dumpInstructions(FILE *p_out_file, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    vfprintf(p_out_file, format, args);
+    va_end(args);
+}
 
 class CodeGenerator final : public AstNodeVisitor {
   private:
@@ -35,6 +43,20 @@ class CodeGenerator final : public AstNodeVisitor {
     void visit(WhileNode &p_while) override;
     void visit(ForNode &p_for) override;
     void visit(ReturnNode &p_return) override;
+    void initLocal(const SymbolTable *table);
+    void pushVarAddr(const VariableReferenceNode &var);
+    void pushVar(SymbolEntry& symbol, int size);
+    void pushReg(const char* reg);
+    void pop2Reg(const char* reg);
+    void saveRegs();
+    void loadRegs();
+    void dumpInstrs(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vfprintf(m_output_file.get(), format, args);
+        va_end(args);
+    }
+
 };
 
 #endif

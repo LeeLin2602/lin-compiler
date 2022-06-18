@@ -17,6 +17,7 @@ class FunctionInvocationNode final : public ExpressionNode {
     ExprNodes m_args;
 
   public:
+    int stkLoc = 0;
     ~FunctionInvocationNode() = default;
     FunctionInvocationNode(const uint32_t line, const uint32_t col,
                            const char *const p_name, ExprNodes &p_args)
@@ -24,7 +25,6 @@ class FunctionInvocationNode final : public ExpressionNode {
 
     const std::string &getName() const { return m_name; }
     const char *getNameCString() const { return m_name.c_str(); }
-
     const ExprNodes &getArguments() const { return m_args; }
 
     void accept(AstNodeVisitor &p_visitor) override { p_visitor.visit(*this); }

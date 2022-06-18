@@ -11,7 +11,6 @@ class AssignmentNode final : public AstNode {
   private:
     std::unique_ptr<VariableReferenceNode> m_lvalue;
     std::unique_ptr<ExpressionNode> m_expr;
-
   public:
     ~AssignmentNode() = default;
     AssignmentNode(const uint32_t line, const uint32_t col,
@@ -20,6 +19,8 @@ class AssignmentNode final : public AstNode {
 
     const VariableReferenceNode &getLvalue() const { return *m_lvalue.get(); }
     const ExpressionNode &getExpr() const { return *m_expr.get(); }
+    VariableReferenceNode* getL() { return m_lvalue.get(); }
+    ExpressionNode* getR() {return m_expr.get(); }
 
     void accept(AstNodeVisitor &p_visitor) override { p_visitor.visit(*this); }
     void visitChildNodes(AstNodeVisitor &p_visitor) override;
