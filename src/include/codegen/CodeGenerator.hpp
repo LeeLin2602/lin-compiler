@@ -50,6 +50,8 @@ class CodeGenerator final : public AstNodeVisitor {
     void pop2Reg(const char* reg);
     void saveRegs();
     void loadRegs();
+    void dumpLabel(int id);
+    void dumpGoto(int id);
     void dumpInstrs(const char* format, ...) {
         va_list args;
         va_start(args, format);

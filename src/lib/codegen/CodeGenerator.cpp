@@ -62,6 +62,7 @@ const char* argRegs[] = {
     };
 
 int stkptr = -8;
+int labelId = 0;
 
 void CodeGenerator::pushVarAddr(const VariableReferenceNode &var) {
     auto *entry = m_symbol_manager_ptr -> lookup(var.getName());
@@ -89,6 +90,14 @@ void CodeGenerator::pop2Reg(const char* reg) {
     dumpInstrs("// pop to %s\n", reg);
     dumpInstrs("    lw %s, 0(sp)\n", reg);
     dumpInstrs("    addi sp, sp, 4\n");
+}
+
+void CodeGenerator::dumpLabel(int id){
+    dumpInstrs("label%d:\n", id);
+}
+
+void CodeGenerator::dumpGoto(int id){
+    dumpInstrs("    j label%d\n", id);
 }
 
 
@@ -239,16 +248,62 @@ void CodeGenerator::visit(BinaryOperatorNode &p_bin_op) {
     p_bin_op.getL() -> accept(*this);
     p_bin_op.getR() -> accept(*this);
 
-    pop2Reg("t0");
     pop2Reg("t1");
+    pop2Reg("t0");
+        
+    dumpInstrs("// t0 = t0 {OPR} t1\n");
 
 	switch (p_bin_op.getOp()) {
         case Operator::kPlusOp:
-            dumpInstrs("// t0 = t0 + t1\n");
             dumpInstrs("    add t0, t0, t1\n");
             break;
         case Operator::kMultiplyOp:
             dumpInstrs("    mul t0, t0, t1\n");
+            break;
+        case Operator::kMinusOp:
+            dumpInstrs("    sub t0, t0, t1\n");
+            break;
+        case Operator::kDivideOp:
+            dumpInstrs("    div t0, t0, t1\n");
+            break;
+        case Operator::kModOp:
+            dumpInstrs("    rem t0, t0, t1\n");
+            break;
+        case Operator::kAndOp:
+            dumpInstrs("    and t0, t0, t1\n");
+            break;
+        case Operator::kOrOp:
+            dumpInstrs("    or t0, t0, t1\n");
+            break;
+        case Operator::kEqualOp:
+            dumpInstrs("    sub t0, t0, t1\n");
+            dumpInstrs("    seqz t0, t0\n");
+            break;
+        case Operator::kNotEqualOp:
+            dumpInstrs("    sub t0, t0, t1\n");
+            dumpInstrs("    snez t0, t0\n");
+            break;
+        case Operator::kLessOp:
+            dumpInstrs("    sub t0, t0, t1\n");
+            dumpInstrs("    sltz t0, t0\n");
+            break;
+        case Operator::kGreaterOp:
+            dumpInstrs("    sub t0, t0, t1\n");
+            dumpInstrs("    sgtz t0, t0\n");
+            break;
+        case Operator::kLessOrEqualOp:
+            dumpInstrs("    sub t0, t0, t1\n");
+            dumpInstrs("    mv t1, t0\n");
+            dumpInstrs("    sltz t0, t0\n");
+            dumpInstrs("    seqz t1, t1\n");
+            dumpInstrs("    or t0, t0, t1\n");
+            break;
+        case Operator::kGreaterOrEqualOp:
+            dumpInstrs("    sub t0, t0, t1\n");
+            dumpInstrs("    mv t1, t0\n");
+            dumpInstrs("    sgtz t0, t0\n");
+            dumpInstrs("    seqz t1, t1\n");
+            dumpInstrs("    or t0, t0, t1\n");
             break;
     }
     pushReg("t0");
@@ -290,7 +345,26 @@ void CodeGenerator::visit(AssignmentNode &p_assignment) {
 
 void CodeGenerator::visit(ReadNode &p_read) {}
 
-void CodeGenerator::visit(IfNode &p_if) {}
+void CodeGenerator::visit(IfNode &p_if) {
+    auto cond = p_if.getCond();
+    auto body = p_if.getBody();
+    auto elseBody = p_if.getElse();
+    
+    int elseLabel = labelId++;
+    int doneLabel = labelId++;
+
+    dumpInstrs("// OAO\n");
+    cond->accept(*this);
+    dumpInstrs("// QAQ\n");
+    pop2Reg("t0");
+    dumpInstrs("    beq t0, zero, label%d\n", elseLabel);
+    body -> accept(*this);
+    dumpGoto(doneLabel);
+    dumpLabel(elseLabel);
+    if(elseBody) 
+        elseBody -> accept(*this);
+    dumpLabel(doneLabel);
+}
 
 void CodeGenerator::visit(WhileNode &p_while) {}
 

@@ -25,6 +25,10 @@ class IfNode final : public AstNode {
 
     void accept(AstNodeVisitor &p_visitor) override { p_visitor.visit(*this); }
     void visitChildNodes(AstNodeVisitor &p_visitor) override;
+
+    ExpressionNode* getCond() { return m_condition.get(); }
+    CompoundStatementNode* getBody() { return m_body.get(); }
+    CompoundStatementNode* getElse() { return m_else_body.get(); }
 };
 
 #endif
