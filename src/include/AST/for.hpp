@@ -29,6 +29,9 @@ class ForNode final : public AstNode {
 
     const ConstantValueNode &getLowerBound() const;
     const ConstantValueNode &getUpperBound() const;
+    
+    AssignmentNode* getInit() { return m_init_stmt.get(); }
+    CompoundStatementNode* getBody() { return m_body.get(); }
 
     const SymbolTable *getSymbolTable() const { return m_symbol_table_ptr; }
     void setSymbolTable(const SymbolTable *p_symbol_table) {

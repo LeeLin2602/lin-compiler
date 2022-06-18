@@ -25,6 +25,7 @@ class UnaryOperatorNode final : public ExpressionNode {
     }
 
     const ExpressionNode &getOperand() const { return *m_operand.get(); }
+    ExpressionNode *getVal() { return m_operand.get(); }
 
     void accept(AstNodeVisitor &p_visitor) override { p_visitor.visit(*this); }
     void visitChildNodes(AstNodeVisitor &p_visitor) override;

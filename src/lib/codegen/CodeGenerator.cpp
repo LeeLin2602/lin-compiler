@@ -103,14 +103,13 @@ void CodeGenerator::dumpGoto(int id){
 
 void CodeGenerator::initLocal(const SymbolTable *table) {
 
-    stkptr = -8;
     int cnt = 0;
 
     for (const auto &ptr : table -> getEntries()) {
         auto type = ptr -> getTypePtr();
         int space;
 
-        if (type -> isPrimitiveInteger() || type -> isPrimitiveBool()) 
+        // if (type -> isPrimitiveInteger() || type -> isPrimitiveBool()) 
             space = 4;
         
         pushVar(*ptr, space);	
@@ -211,6 +210,7 @@ void CodeGenerator::visit(FunctionNode &p_function) {
 	dumpInstrs("%s:\n", p_function.getName().c_str());
     
     dumpInstructions(m_output_file.get(), prologue);
+    stkptr = -8;
     initLocal(p_function.getSymbolTable());
     p_function.visitChildNodes(*this);
     dumpInstructions(m_output_file.get(), epilogue);
@@ -309,7 +309,22 @@ void CodeGenerator::visit(BinaryOperatorNode &p_bin_op) {
     pushReg("t0");
 }
 
-void CodeGenerator::visit(UnaryOperatorNode &p_un_op) {}
+void CodeGenerator::visit(UnaryOperatorNode &p_un_op) {
+    p_un_op.getVal() -> accept(*this);
+    pop2Reg("t0");
+
+    switch (p_un_op.getOp()) {
+        case Operator::kNegOp:
+            dumpInstrs("    li  t1, -1\n");
+            dumpInstrs("    mul t0, t0, t1\n");
+            break;
+        case Operator::kNotOp:
+            dumpInstrs("    li   t0, 1\n");
+            dumpInstrs("    addi t0, t0, -1\n");
+            break;
+    }
+    pushReg("t0");
+}
 
 void CodeGenerator::visit(FunctionInvocationNode &p_func_invocation) {
     auto &args = p_func_invocation.getArguments();
@@ -343,7 +358,15 @@ void CodeGenerator::visit(AssignmentNode &p_assignment) {
     dumpInstrs("    sw t1, 0(t0)\n");
 }
 
-void CodeGenerator::visit(ReadNode &p_read) {}
+void CodeGenerator::visit(ReadNode &p_read) {
+    dumpInstrs("// read\n");
+    auto var = p_read.getVar();
+    pushVarAddr(*var);
+    dumpInstrs("    jal ra, readInt\n");
+    pop2Reg("t0");
+    dumpInstrs("    sw a0, 0(t0)\n");
+    // dumpInstrs("    lw a0, 0(t0)\n");
+}
 
 void CodeGenerator::visit(IfNode &p_if) {
     auto cond = p_if.getCond();
@@ -366,14 +389,68 @@ void CodeGenerator::visit(IfNode &p_if) {
     dumpLabel(doneLabel);
 }
 
-void CodeGenerator::visit(WhileNode &p_while) {}
+void CodeGenerator::visit(WhileNode &p_while) {
+    
+    auto cond = p_while.getCond();
+    auto body = p_while.getBody();
+
+    int bodyLabel = labelId++;
+    int doneLabel = labelId++;
+
+    
+    
+    dumpLabel(bodyLabel);
+    
+    dumpInstrs("// OAO\n");
+    cond->accept(*this);
+    dumpInstrs("// QAQ\n");
+    pop2Reg("t0");
+    
+    dumpInstrs("    beq t0, zero, label%d\n", doneLabel);
+
+    body -> accept(*this);
+    dumpGoto(bodyLabel);
+
+    dumpLabel(doneLabel);
+}
 
 void CodeGenerator::visit(ForNode &p_for) {
     // Reconstruct the hash table for looking up the symbol entry
     m_symbol_manager_ptr->reconstructHashTableFromSymbolTable(
         p_for.getSymbolTable());
+    
+    initLocal(p_for.getSymbolTable());
 
-    p_for.visitChildNodes(*this);
+    int bodyLabel = labelId++;
+    int doneLabel = labelId++;
+    int lower = p_for.getLowerBound().getConstantPtr()->integer();
+    int upper = p_for.getUpperBound().getConstantPtr()->integer();
+
+    auto iter = p_for.getInit() -> getLvalue().getNameCString();
+    auto symbol = m_symbol_manager_ptr->lookup(iter);
+
+    cout << symbol -> getName() << ": " << symbol -> stkLoc << endl;
+
+    dumpInstrs("// init loop variable\n");
+    
+    dumpInstrs("    li t0, %d\n", lower);
+    dumpInstrs("    sw t0, %d(s0)\n", symbol -> stkLoc);
+
+    dumpInstrs("// begin for loop\n");
+    
+    dumpLabel(bodyLabel);
+
+    dumpInstrs("    lw t0, %d(s0)\n", symbol -> stkLoc);
+    dumpInstrs("    li t1, %d\n", upper);
+    dumpInstrs("    beq t0, t1, label%d\n", doneLabel);
+
+    p_for.getBody() -> accept(*this);
+    
+    dumpInstrs("    lw t0, %d(s0)\n", symbol -> stkLoc);
+    dumpInstrs("    addi t0, t0, 1\n");
+    dumpInstrs("    sw t0, %d(s0)\n", symbol -> stkLoc);
+    dumpGoto(bodyLabel);
+    dumpLabel(doneLabel);
 
     // Remove the entries in the hash table
     m_symbol_manager_ptr->removeSymbolsFromHashTable(p_for.getSymbolTable());
